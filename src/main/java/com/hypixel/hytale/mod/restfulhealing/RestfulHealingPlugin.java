@@ -7,6 +7,7 @@ public class RestfulHealingPlugin {
     private HealingConfig config;
     private java.util.Map<java.util.UUID, PlayerHealingState> healingStates;
     private HealingTask healingTask;
+    private PlayerStateListener stateListener;
     
     public RestfulHealingPlugin() {
         // Constructor for Phase 1
@@ -20,6 +21,9 @@ public class RestfulHealingPlugin {
         
         // Load configuration
         loadConfiguration();
+        
+        // Initialize state listener
+        this.stateListener = new PlayerStateListener(this);
         
         // Start healing task
         startHealingTask();
@@ -76,15 +80,23 @@ public class RestfulHealingPlugin {
         System.out.println("Healing task started!");
     }
     
-    // Event handlers (placeholder for Phase 2)
+    // Event handlers with state tracking integration
     public void onPlayerJoin(java.util.UUID playerUuid) {
         healingStates.put(playerUuid, new PlayerHealingState());
+        stateListener.onPlayerJoin(playerUuid);
         System.out.println("Player joined: " + playerUuid);
     }
     
     public void onPlayerLeave(java.util.UUID playerUuid) {
         healingStates.remove(playerUuid);
+        stateListener.onPlayerLeave(playerUuid);
         System.out.println("Player left: " + playerUuid);
+    }
+    
+    // State change methods
+    public void onPlayerStateChange(java.util.UUID playerUuid, boolean isSitting, boolean isSleeping, 
+                               boolean isWalking, boolean isRunning, boolean isJumping) {
+        stateListener.onMovementStateChange(playerUuid, isSitting, isSleeping, isWalking, isRunning, isJumping);
     }
     
     // Getters for other classes
@@ -94,6 +106,10 @@ public class RestfulHealingPlugin {
     
     public java.util.Map<java.util.UUID, PlayerHealingState> getHealingStates() {
         return healingStates;
+    }
+    
+    public PlayerStateListener getStateListener() {
+        return stateListener;
     }
     
     // Main method for Phase 1 testing

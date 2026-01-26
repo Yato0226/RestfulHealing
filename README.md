@@ -20,7 +20,7 @@ A Hytale server mod that adds intuitive healing mechanics while resting or sleep
 
 ### Auto-Heal to Safe Threshold
 - **Smart Healing**: While sleeping, HP restores to 70-80% max, not full
-- **Balanced Gameplay**: Full heal still requires items or longer rest
+- **Balanced Gameplay**: Full heal still requires items or foods
 - **Item Preservation**: Avoids trivializing healing items
 
 ## Installation

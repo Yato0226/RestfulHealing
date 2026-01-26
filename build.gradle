@@ -3,8 +3,8 @@ plugins {
     id 'application'
 }
 
-group = 'com.hypixel.hytale.mod'
-version = '1.0.0'
+group = project.group
+version = project.version
 
 java {
     sourceCompatibility = JavaVersion.VERSION_25

@@ -1,15 +1,18 @@
 {
-  "id": "restfulhealing",
-  "name": "Restful Healing Mod",
-  "version": "1.0.0",
-  "description": "Adds intuitive healing mechanics while resting or sleeping, with accelerated regen curves and smart auto-heal thresholds.",
-  "author": "Louize",
-  "mainClass": "com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin",
-  "dependencies": [],
-  "apiVersion": "1.0.0",
-  "type": "plugin",
-  "assets": {
-    "Common": {},
-    "Server": {}
-  }
+  "Group": "LouizeMods",
+  "Name": "RestfulHealing",
+  "Version": "1.0.0",
+  "Description": "Adds intuitive healing mechanics while resting or sleeping.",
+  "Authors": [
+    {
+      "Name": "Louize"
+    }
+  ],
+  "Website": "",
+  "ServerVersion": "*",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "DisabledByDefault": false,
+  "Main": "com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin",
+  "IncludesAssetPack": false
 }

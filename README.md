@@ -1,3 +1,5 @@
+## sorry it is kinda messy lol
+
 # Restful Healing Mod
 
 A Hytale server mod that adds intuitive healing mechanics while resting or sleeping, with accelerated regen curves and smart auto-heal thresholds.

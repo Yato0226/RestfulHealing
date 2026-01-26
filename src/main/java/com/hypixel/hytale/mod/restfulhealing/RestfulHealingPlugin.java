@@ -1,5 +1,6 @@
 package com.hypixel.hytale.mod.restfulhealing;
 
+import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
@@ -81,23 +82,13 @@ public class RestfulHealingPlugin extends JavaPlugin {
     private void startHealingTask() {
         this.healingTask = new HealingTask(this, config, healingStates, getLogger());
 
-        this.healingTaskRegistration = getTaskRegistry().registerTask(
-            java.util.concurrent.CompletableFuture.runAsync(() -> {
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        healingTask.run();
-                        Thread.sleep(1000); 
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    } catch (Exception e) {
-                        getLogger().at(java.util.logging.Level.SEVERE).log("Error in healing task: " + e.getMessage());
-                    }
-                }
-            })
+        // Schedule task to run on the WorldThread every 20 ticks (1 second)
+        this.healingTaskRegistration = getTaskRegistry().registerRepeatingTask(
+            healingTask::run,
+            20L
         );
 
-        getLogger().at(java.util.logging.Level.INFO).log("Healing task started!");
+        getLogger().at(java.util.logging.Level.INFO).log("Healing task started on main thread!");
     }
     
     private void registerEvents() {

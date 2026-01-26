@@ -217,3 +217,5 @@ All five phases have been successfully completed:
 The mod is now fully functional and packaged as `RestfulHealing.jar` with optimized logging to prevent memory leaks. The mod is ready for deployment to a Hytale server.
 
 This plan leverages Hytale's built-in systems while implementing the specific healing mechanics requested. The modular approach allows for incremental development and testing.
+
+/dir add C:\Users\louize\AppData\Roaming\Hytale\install\release\package\game\latest, C:\Users\louize\source\repos\TempDecompiledAssembly\HYTALE

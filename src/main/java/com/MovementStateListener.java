@@ -3,6 +3,7 @@ package com.hypixel.hytale.mod.restfulhealing;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.protocol.packets.player.ClientMovement;
+import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -19,20 +20,20 @@ public class MovementStateListener {
     
     public void onClientMovement(Player player, ClientMovement clientMovement, Ref<EntityStore> playerRef) {
         UUID playerUuid = player.getUuid();
-        
+
         MovementStates movementStates = clientMovement.movementStates;
         if (movementStates == null) {
-            return; 
+            return;
         }
-        
+
         boolean isSitting = movementStates.sitting;
         boolean isSleeping = movementStates.sleeping;
         boolean isWalking = movementStates.walking;
         boolean isRunning = movementStates.running;
         boolean isJumping = movementStates.jumping;
-        
+
         plugin.onPlayerStateChange(playerUuid, isSitting, isSleeping, isWalking, isRunning, isJumping);
-        
+
         if (plugin.getConfig().isDebugMode()) {
             plugin.getLogger().at(java.util.logging.Level.FINE).log("Movement state update for " + playerUuid +
                 ": sitting=" + isSitting + ", sleeping=" + isSleeping +
@@ -52,15 +53,15 @@ public class MovementStateListener {
                 
                 if (player != null) {
                     UUID playerUuid = player.getUuid();
-                    
+
                     boolean isSitting = movementStates.sitting;
                     boolean isSleeping = movementStates.sleeping;
                     boolean isWalking = movementStates.walking;
                     boolean isRunning = movementStates.running;
                     boolean isJumping = movementStates.jumping;
-                    
+
                     plugin.onPlayerStateChange(playerUuid, isSitting, isSleeping, isWalking, isRunning, isJumping);
-                    
+
                     if (plugin.getConfig().isDebugMode()) {
                         plugin.getLogger().at(java.util.logging.Level.FINE).log("Component-based movement state update for " + playerUuid +
                             ": sitting=" + isSitting + ", sleeping=" + isSleeping +

@@ -1,137 +1,164 @@
 package com.hypixel.hytale.mod.restfulhealing;
 
-// For Phase 1 testing, we'll create a simplified version
-// In later phases, we'll extend the actual JavaPlugin from Hytale API
-public class RestfulHealingPlugin {
-    
+import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
+import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
+import com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent;
+import com.hypixel.hytale.server.core.task.TaskRegistry;
+import com.hypixel.hytale.server.core.task.TaskRegistration;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class RestfulHealingPlugin extends JavaPlugin {
+
     private HealingConfig config;
-    private java.util.Map<java.util.UUID, PlayerHealingState> healingStates;
+    private Map<UUID, PlayerHealingState> healingStates;
     private HealingTask healingTask;
     private PlayerStateListener stateListener;
-    
-    public RestfulHealingPlugin() {
-        // Constructor for Phase 1
+    private TaskRegistration healingTaskRegistration;
+
+    public RestfulHealingPlugin(JavaPluginInit init) {
+        super(init);
     }
     
-    public void initialize() {
-        System.out.println("Initializing Restful Healing Mod...");
-        
+    @Override
+    protected void setup() {
+        getLogger().info("Setting up Restful Healing Mod...");
+
         // Initialize healing states tracking
-        this.healingStates = new java.util.concurrent.ConcurrentHashMap<>();
-        
+        this.healingStates = new ConcurrentHashMap<>();
+
         // Load configuration
         loadConfiguration();
-        
-        // Initialize state listener
-        this.stateListener = new PlayerStateListener(this);
-        
+
+        // Initialize state listener with logger
+        this.stateListener = new PlayerStateListener(this, getLogger());
+
+        // Register events
+        registerEvents();
+
+        getLogger().info("Restful Healing Mod setup completed!");
+    }
+
+    @Override
+    protected void start() {
+        getLogger().info("Starting Restful Healing Mod...");
+
         // Start healing task
         startHealingTask();
-        
-        System.out.println("Restful Healing Mod initialized successfully!");
+
+        getLogger().info("Restful Healing Mod started successfully!");
     }
-    
-    public void shutdown() {
-        System.out.println("Disabling Restful Healing Mod...");
-        
+
+    @Override
+    protected void shutdown() {
+        getLogger().info("Disabling Restful Healing Mod...");
+
         // Stop healing task
-        if (healingTask != null) {
-            healingTask.cancel();
-            healingTask = null;
+        if (healingTaskRegistration != null) {
+            healingTaskRegistration.unregister();
+            healingTaskRegistration = null;
         }
-        
+
         // Clear healing states
         if (healingStates != null) {
             healingStates.clear();
         }
-        
-        System.out.println("Restful Healing Mod disabled!");
+
+        getLogger().info("Restful Healing Mod disabled!");
     }
     
     private void loadConfiguration() {
         try {
-            // For Phase 1, use default config
+            // For now, use default config - in the future we can load from plugin config
             this.config = HealingConfig.createDefault();
-            System.out.println("Configuration loaded successfully!");
-            System.out.println("Config: " + config.toString());
-            
+            getLogger().info("Configuration loaded successfully!");
+            getLogger().info("Config: " + config.toString());
+
         } catch (Exception e) {
-            System.err.println("Failed to load configuration, using defaults: " + e.getMessage());
+            getLogger().error("Failed to load configuration, using defaults: " + e.getMessage());
             this.config = HealingConfig.createDefault();
         }
     }
     
     private void startHealingTask() {
-        this.healingTask = new HealingTask(this, config, healingStates);
-        // For Phase 1, we'll simulate the task running
-        final HealingTask task = this.healingTask; // Copy to avoid null reference
-        new Thread(() -> {
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(1000); // Wait 1 second
-                    if (!task.isCancelled()) {
-                        task.run();
+        // Create the healing task
+        this.healingTask = new HealingTask(this, config, healingStates, getLogger());
+
+        // Schedule the task using the server's task registry
+        // Run healing calculation every 1 second
+        this.healingTaskRegistration = getTaskRegistry().registerTask(
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        healingTask.run();
+                        Thread.sleep(1000); // Sleep for 1 second between checks
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    } catch (Exception e) {
+                        getLogger().error("Error in healing task: " + e.getMessage(), e);
                     }
-                } catch (InterruptedException e) {
-                    break;
                 }
-            }
-        }).start();
-        System.out.println("Healing task started!");
+            })
+        );
+
+        getLogger().info("Healing task started!");
     }
     
+    private void registerEvents() {
+        // Register for player events
+        getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
+        getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
+        getEventRegistry().registerGlobal(PlayerInteractEvent.class, this::onPlayerInteract);
+
+        getLogger().info("Events registered successfully!");
+    }
+
     // Event handlers with state tracking integration
-    public void onPlayerJoin(java.util.UUID playerUuid) {
+    private void onPlayerReady(PlayerReadyEvent event) {
+        UUID playerUuid = event.getPlayer().getUuid();
         healingStates.put(playerUuid, new PlayerHealingState());
         stateListener.onPlayerJoin(playerUuid);
-        System.out.println("Player joined: " + playerUuid);
+        getLogger().debug("Player joined: " + playerUuid);
     }
-    
-    public void onPlayerLeave(java.util.UUID playerUuid) {
+
+    private void onPlayerDisconnect(PlayerDisconnectEvent event) {
+        UUID playerUuid = event.getPlayer().getUuid();
         healingStates.remove(playerUuid);
         stateListener.onPlayerLeave(playerUuid);
-        System.out.println("Player left: " + playerUuid);
+        getLogger().debug("Player left: " + playerUuid);
     }
     
-    // State change methods
-    public void onPlayerStateChange(java.util.UUID playerUuid, boolean isSitting, boolean isSleeping, 
+    // Combat detection method
+    private void onPlayerInteract(PlayerInteractEvent event) {
+        // When a player interacts (potentially taking damage), update their combat time
+        UUID playerUuid = event.getPlayer().getUuid();
+        PlayerHealingState healingState = healingStates.get(playerUuid);
+        if (healingState != null) {
+            healingState.updateCombatTime();
+            getLogger().debug("Player " + playerUuid + " entered combat");
+        }
+    }
+
+    // State change methods (for testing purposes)
+    public void onPlayerStateChange(java.util.UUID playerUuid, boolean isSitting, boolean isSleeping,
                                boolean isWalking, boolean isRunning, boolean isJumping) {
         stateListener.onMovementStateChange(playerUuid, isSitting, isSleeping, isWalking, isRunning, isJumping);
     }
-    
+
     // Getters for other classes
     public HealingConfig getConfig() {
         return config;
     }
-    
-    public java.util.Map<java.util.UUID, PlayerHealingState> getHealingStates() {
+
+    public Map<UUID, PlayerHealingState> getHealingStates() {
         return healingStates;
     }
-    
+
     public PlayerStateListener getStateListener() {
         return stateListener;
-    }
-    
-    // Main method for Phase 1 testing
-    public static void main(String[] args) {
-        RestfulHealingPlugin plugin = new RestfulHealingPlugin();
-        plugin.initialize();
-        
-        // Simulate some players joining
-        java.util.UUID player1 = java.util.UUID.randomUUID();
-        java.util.UUID player2 = java.util.UUID.randomUUID();
-        
-        plugin.onPlayerJoin(player1);
-        plugin.onPlayerJoin(player2);
-        
-        // Wait a bit
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // Ignore
-        }
-        
-        plugin.onPlayerLeave(player1);
-        plugin.shutdown();
     }
 }

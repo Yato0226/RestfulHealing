@@ -114,13 +114,23 @@ public class RestfulHealingSystem extends EntityTickingSystem<EntityStore> {
                 long lastCombatMillis = mostRecentCombat.toEpochMilli();
                 if (lastCombatMillis > state.getLastCombatTime()) {
                     state.setLastCombatTime(lastCombatMillis);
+                    // Reset ramp-up on new combat action or damage
+                    state.stopResting();
                 }
             }
         }
 
         // Check eligibility
         if (state.isInCombat(config.getCombatTimeout()) || !state.isResting()) {
+            if (state.isHealing()) {
+                state.stopResting();
+            }
             return;
+        }
+
+        // Restart healing if eligible but not currently tracking rest (e.g. after combat timeout)
+        if (!state.isHealing()) {
+            state.startResting();
         }
 
         // Check health threshold
@@ -139,11 +149,22 @@ public class RestfulHealingSystem extends EntityTickingSystem<EntityStore> {
         }
 
         // Calculate healing rate
-        float healingRate = state.wasSleeping() ? config.getSleepingHealRate() : config.getSittingHealRate();
+        float baseRate = state.wasSleeping() ? config.getSleepingHealRate() : config.getSittingHealRate();
         
-        if (state.shouldAccelerate(config.getAccelerationTime())) {
-            healingRate *= config.getAcceleratedRate();
+        // Accelerated Regen Curve:
+        // First few seconds (0 to accelerationTime): baseRate
+        // Ramps up between accelerationTime and (accelerationTime + 5s):
+        long durationMs = state.getRestDuration();
+        float multiplier = 1.0f;
+        long accelStartMs = config.getAccelerationTime();
+        long rampDurationMs = 5000; // Ramp over 5 seconds (e.g., from 10s to 15s)
+        
+        if (durationMs > accelStartMs) {
+            float rampProgress = (float)(durationMs - accelStartMs) / (float)rampDurationMs;
+            multiplier = 1.0f + (config.getAcceleratedRate() - 1.0f) * Math.min(1.0f, rampProgress);
         }
+
+        float healingRate = baseRate * multiplier;
 
         // Apply healing scaled by dt (delta time in seconds)
         // healingRate is % per second

@@ -39,7 +39,13 @@ jobs:
     - name: Create release assets directory
       run: |
         mkdir -p release_assets
-        cp build/libs/*.jar release_assets/ || echo "No JAR files found in build/libs"
+        find . -path "./build/libs/*.jar" -exec cp {} release_assets/ \;
+        # Rename the JAR to match the tag version
+        for jar_file in release_assets/*.jar; do
+          if [ -f "$jar_file" ]; then
+            mv "$jar_file" "release_assets/RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
+          fi
+        done
         ls -la release_assets/
         
     - name: Create source code archive

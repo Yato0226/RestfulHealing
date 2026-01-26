@@ -5,8 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-// PlayerStateListener monitors and handles player state changes
-// In production, this will listen to actual Hytale movement events
 public class PlayerStateListener {
 
     private final RestfulHealingPlugin plugin;
@@ -22,32 +20,32 @@ public class PlayerStateListener {
     }
 
     public void onPlayerJoin(UUID playerUuid) {
-        // Initialize player state
         MovementStateChecker initialState = new MovementStateChecker();
         playerStates.put(playerUuid, initialState);
         lastUpdateTimes.put(playerUuid, System.currentTimeMillis());
 
-        logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: Player " + playerUuid + " joined with initial state: " + initialState);
+        if (logger != null) {
+            logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: Player " + playerUuid + " joined with initial state: " + initialState);
+        }
     }
 
     public void onPlayerLeave(UUID playerUuid) {
-        // Clean up player state
         playerStates.remove(playerUuid);
         lastUpdateTimes.remove(playerUuid);
 
-        logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: Player " + playerUuid + " left");
+        if (logger != null) {
+            logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: Player " + playerUuid + " left");
+        }
     }
     
     public void onMovementStateChange(UUID playerUuid, boolean isSitting, boolean isSleeping,
                                   boolean isWalking, boolean isRunning, boolean isJumping) {
         MovementStateChecker currentState = playerStates.get(playerUuid);
         if (currentState == null) {
-            // Player not tracked yet, initialize
             currentState = new MovementStateChecker(isSitting, isSleeping);
             playerStates.put(playerUuid, currentState);
         }
 
-        // Create new state for comparison
         MovementStateChecker newState = new MovementStateChecker();
         newState.setSitting(isSitting);
         newState.setSleeping(isSleeping);
@@ -55,11 +53,9 @@ public class PlayerStateListener {
         newState.setRunning(isRunning);
         newState.setJumping(isJumping);
 
-        // Check if state actually changed
         if (currentState.hasStateChanged(newState)) {
             handleStateChange(playerUuid, currentState, newState);
 
-            // Update stored state
             currentState.setSitting(isSitting);
             currentState.setSleeping(isSleeping);
             currentState.setWalking(isWalking);
@@ -70,47 +66,60 @@ public class PlayerStateListener {
         lastUpdateTimes.put(playerUuid, System.currentTimeMillis());
     }
 
+    private final Map<UUID, Long> lastStateChangeLogTime = new java.util.concurrent.ConcurrentHashMap<>();
+
     private void handleStateChange(UUID playerUuid, MovementStateChecker oldState, MovementStateChecker newState) {
         PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
         if (healingState == null) {
-            return; // Player not initialized yet
+            return; 
         }
 
         HealingConfig config = plugin.getConfig();
 
-        logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: State change for " + playerUuid);
-        logger.at(java.util.logging.Level.FINE).log("  Old: " + oldState);
-        logger.at(java.util.logging.Level.FINE).log("  New: " + newState);
+        if (logger != null && config.isDebugMode()) {
+            long currentTime = System.currentTimeMillis();
+            Long lastLogTime = lastStateChangeLogTime.get(playerUuid);
 
-        // Handle starting to rest
+            if (lastLogTime == null || (currentTime - lastLogTime) >= 5000) {
+                logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: State change for " + playerUuid);
+                logger.at(java.util.logging.Level.FINE).log("  Old: " + oldState);
+                logger.at(java.util.logging.Level.FINE).log("  New: " + newState);
+                lastStateChangeLogTime.put(playerUuid, currentTime);
+            }
+        }
+
         if (newState.isResting() && !oldState.isResting()) {
             healingState.startResting();
             healingState.updateMovementState(newState.isSitting(), newState.isSleeping());
-            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " started resting");
+            if (logger != null) {
+                logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " started resting");
+            }
         }
 
-        // Handle stopping rest due to movement
         else if (oldState.isResting() && newState.isMoving()) {
             healingState.stopResting();
             healingState.updateMovementState(false, false);
-            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " stopped resting (movement detected)");
+            if (logger != null) {
+                logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " stopped resting (movement detected)");
+            }
         }
 
-        // Handle state change while resting
         else if (oldState.isResting() && newState.isResting()) {
             healingState.updateMovementState(newState.isSitting(), newState.isSleeping());
-            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " changed resting state: " +
-                (newState.isSleeping() ? "Sleeping" : "Sitting"));
+            if (logger != null) {
+                logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " changed resting state: " +
+                    (newState.isSleeping() ? "Sleeping" : "Sitting"));
+            }
         }
 
-        // Handle stopping rest due to standing up
         else if (oldState.isResting() && !newState.isResting()) {
             healingState.stopResting();
             healingState.updateMovementState(false, false);
-            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " stopped resting (stood up)");
+            if (logger != null) {
+                logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " stopped resting (stood up)");
+            }
         }
 
-        // Always update movement state
         healingState.updateMovementState(newState.isSitting(), newState.isSleeping());
     }
 
@@ -126,7 +135,6 @@ public class PlayerStateListener {
         return playerStates.size();
     }
 
-    // Utility method to simulate state changes for testing
     public void simulatePlayerAction(UUID playerUuid, String action) {
         MovementStateChecker currentState = playerStates.get(playerUuid);
         if (currentState == null) {

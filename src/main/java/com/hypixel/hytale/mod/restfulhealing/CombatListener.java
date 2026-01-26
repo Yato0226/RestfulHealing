@@ -7,11 +7,9 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
+import java.util.Map;
 import java.util.UUID;
 
-/**
- * CombatListener handles combat-related events to track when players take damage
- */
 public class CombatListener {
 
     private final RestfulHealingPlugin plugin;
@@ -20,37 +18,39 @@ public class CombatListener {
         this.plugin = plugin;
     }
 
-    /**
-     * Called when a player interacts (which could include taking damage)
-     */
+    private final Map<UUID, Long> lastCombatLogTime = new java.util.concurrent.ConcurrentHashMap<>();
+
     public void onPlayerInteract(PlayerInteractEvent event) {
         UUID playerUuid = event.getPlayer().getUuid();
         PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
         if (healingState != null) {
             healingState.updateCombatTime();
-            plugin.getLogger().at(java.util.logging.Level.FINE).log("Player " + playerUuid + " entered combat due to interaction");
+
+            if (plugin.getConfig().isDebugMode()) {
+                long currentTime = System.currentTimeMillis();
+                Long lastLogTime = lastCombatLogTime.get(playerUuid);
+
+                if (lastLogTime == null || (currentTime - lastLogTime) >= 5000) {
+                    plugin.getLogger().at(java.util.logging.Level.FINE).log("Player " + playerUuid + " entered combat due to interaction");
+                    lastCombatLogTime.put(playerUuid, currentTime);
+                }
+            }
         }
     }
 
-    /**
-     * Check if a player is currently in combat based on the timeout
-     */
     public boolean isInCombat(UUID playerUuid) {
         PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
         if (healingState != null) {
             return healingState.isInCombat(plugin.getConfig().getCombatTimeout());
         }
-        return false; // If player not tracked, assume not in combat
+        return false; 
     }
 
-    /**
-     * Get the time elapsed since the player was last in combat
-     */
     public long getTimeSinceLastCombat(UUID playerUuid) {
         PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
         if (healingState != null) {
             return System.currentTimeMillis() - healingState.getLastCombatTime();
         }
-        return Long.MAX_VALUE; // If player not tracked, return max value
+        return Long.MAX_VALUE; 
     }
 }

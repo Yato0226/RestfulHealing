@@ -1,10 +1,7 @@
 package com.hypixel.hytale.mod.restfulhealing;
 
-// Simplified MovementStates for Phase 2 testing
-// In production, this will use Hytale's actual MovementStates class
 public class MovementStateChecker {
     
-    // Movement state flags
     private boolean idle;
     private boolean horizontalIdle;
     private boolean jumping;
@@ -29,7 +26,6 @@ public class MovementStateChecker {
     private boolean sleeping;
     
     public MovementStateChecker() {
-        // Default state - standing idle
         this.idle = true;
         this.sitting = false;
         this.sleeping = false;
@@ -49,7 +45,6 @@ public class MovementStateChecker {
         }
     }
     
-    // State checking methods
     public boolean isResting() {
         return sitting || sleeping;
     }
@@ -75,7 +70,6 @@ public class MovementStateChecker {
         return onGround;
     }
     
-    // State update methods
     public void setSitting(boolean sitting) {
         this.sitting = sitting;
         if (sitting) {
@@ -126,7 +120,6 @@ public class MovementStateChecker {
         this.onGround = onGround;
     }
     
-    // Comparison method for state changes
     public boolean hasStateChanged(MovementStateChecker other) {
         return this.sitting != other.sitting || 
                this.sleeping != other.sleeping ||

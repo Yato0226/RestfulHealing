@@ -28,19 +28,14 @@ public class RestfulHealingPlugin extends JavaPlugin {
     protected void setup() {
         getLogger().at(java.util.logging.Level.INFO).log("Setting up Restful Healing Mod...");
 
-        // Initialize healing states tracking
         this.healingStates = new ConcurrentHashMap<>();
 
-        // Load configuration
         loadConfiguration();
 
-        // Initialize state listener with logger
         this.stateListener = new PlayerStateListener(this, getLogger());
 
-        // Initialize combat listener
         this.combatListener = new CombatListener(this);
 
-        // Register events
         registerEvents();
 
         getLogger().at(java.util.logging.Level.INFO).log("Restful Healing Mod setup completed!");
@@ -50,7 +45,6 @@ public class RestfulHealingPlugin extends JavaPlugin {
     protected void start() {
         getLogger().at(java.util.logging.Level.INFO).log("Starting Restful Healing Mod...");
 
-        // Start healing task
         startHealingTask();
 
         getLogger().at(java.util.logging.Level.INFO).log("Restful Healing Mod started successfully!");
@@ -60,13 +54,11 @@ public class RestfulHealingPlugin extends JavaPlugin {
     protected void shutdown() {
         getLogger().at(java.util.logging.Level.INFO).log("Disabling Restful Healing Mod...");
 
-        // Stop healing task
         if (healingTaskRegistration != null) {
             healingTaskRegistration.unregister();
             healingTaskRegistration = null;
         }
 
-        // Clear healing states
         if (healingStates != null) {
             healingStates.clear();
         }
@@ -76,7 +68,6 @@ public class RestfulHealingPlugin extends JavaPlugin {
     
     private void loadConfiguration() {
         try {
-            // For now, use default config - in the future we can load from plugin config
             this.config = HealingConfig.createDefault();
             getLogger().at(java.util.logging.Level.INFO).log("Configuration loaded successfully!");
             getLogger().at(java.util.logging.Level.INFO).log("Config: " + config.toString());
@@ -88,17 +79,14 @@ public class RestfulHealingPlugin extends JavaPlugin {
     }
     
     private void startHealingTask() {
-        // Create the healing task
         this.healingTask = new HealingTask(this, config, healingStates, getLogger());
 
-        // Schedule the task using the server's task registry
-        // Run healing calculation every 1 second
         this.healingTaskRegistration = getTaskRegistry().registerTask(
             java.util.concurrent.CompletableFuture.runAsync(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
                         healingTask.run();
-                        Thread.sleep(1000); // Sleep for 1 second between checks
+                        Thread.sleep(1000); 
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         break;
@@ -113,7 +101,6 @@ public class RestfulHealingPlugin extends JavaPlugin {
     }
     
     private void registerEvents() {
-        // Register for player events
         getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
         getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
         getEventRegistry().registerGlobal(PlayerInteractEvent.class, this::onPlayerInteract);
@@ -121,7 +108,6 @@ public class RestfulHealingPlugin extends JavaPlugin {
         getLogger().at(java.util.logging.Level.INFO).log("Events registered successfully!");
     }
 
-    // Event handlers with state tracking integration
     private void onPlayerReady(PlayerReadyEvent event) {
         UUID playerUuid = event.getPlayer().getUuid();
         healingStates.put(playerUuid, new PlayerHealingState());
@@ -136,9 +122,7 @@ public class RestfulHealingPlugin extends JavaPlugin {
         getLogger().at(java.util.logging.Level.FINE).log("Player left: " + playerUuid);
     }
 
-    // Combat detection method
     private void onPlayerInteract(PlayerInteractEvent event) {
-        // When a player interacts (potentially taking damage), update their combat time
         UUID playerUuid = event.getPlayer().getUuid();
         PlayerHealingState healingState = healingStates.get(playerUuid);
         if (healingState != null) {
@@ -147,13 +131,11 @@ public class RestfulHealingPlugin extends JavaPlugin {
         }
     }
 
-    // State change methods (for testing purposes)
     public void onPlayerStateChange(java.util.UUID playerUuid, boolean isSitting, boolean isSleeping,
                                boolean isWalking, boolean isRunning, boolean isJumping) {
         stateListener.onMovementStateChange(playerUuid, isSitting, isSleeping, isWalking, isRunning, isJumping);
     }
 
-    // Getters for other classes
     public HealingConfig getConfig() {
         return config;
     }

@@ -19,7 +19,6 @@ public class PlayerHealingState {
         this.lastStateCheck = System.currentTimeMillis();
     }
     
-    // Combat management
     public void updateCombatTime() {
         this.lastCombatTime = System.currentTimeMillis();
         this.isHealing = false;
@@ -31,7 +30,6 @@ public class PlayerHealingState {
         return System.currentTimeMillis() - lastCombatTime < combatTimeout;
     }
     
-    // Healing state management
     public void startResting() {
         if (!isHealing) {
             this.restStartTime = System.currentTimeMillis();
@@ -46,7 +44,6 @@ public class PlayerHealingState {
         this.healingProgress = 0.0f;
     }
     
-    // Time calculations
     public long getRestDuration() {
         return isHealing ? System.currentTimeMillis() - restStartTime : 0;
     }
@@ -54,8 +51,11 @@ public class PlayerHealingState {
     public boolean shouldAccelerate(int accelerationTime) {
         return isHealing && (System.currentTimeMillis() - restStartTime) >= accelerationTime;
     }
+
+    public boolean shouldAccelerate(long accelerationTimeMs) {
+        return isHealing && (System.currentTimeMillis() - restStartTime) >= accelerationTimeMs;
+    }
     
-    // State change tracking
     public void updateMovementState(boolean isSitting, boolean isSleeping) {
         this.wasSitting = isSitting;
         this.wasSleeping = isSleeping;
@@ -66,7 +66,6 @@ public class PlayerHealingState {
         return wasSitting || wasSleeping;
     }
     
-    // Getters and setters
     public long getLastCombatTime() { return lastCombatTime; }
     
     public void setLastCombatTime(long lastCombatTime) { this.lastCombatTime = lastCombatTime; }

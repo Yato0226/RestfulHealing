@@ -48,9 +48,9 @@ public class MovementStateListener {
         
         // Log for debugging
         if (plugin.getConfig().isDebugMode()) {
-            plugin.getLogger().debug("Movement state update for " + playerUuid + 
-                ": sitting=" + isSitting + ", sleeping=" + isSleeping + 
-                ", walking=" + isWalking + ", running=" + isRunning + 
+            plugin.getLogger().at(java.util.logging.Level.FINE).log("Movement state update for " + playerUuid +
+                ": sitting=" + isSitting + ", sleeping=" + isSleeping +
+                ", walking=" + isWalking + ", running=" + isRunning +
                 ", jumping=" + isJumping);
         }
     }
@@ -84,9 +84,9 @@ public class MovementStateListener {
                     
                     // Log for debugging
                     if (plugin.getConfig().isDebugMode()) {
-                        plugin.getLogger().debug("Component-based movement state update for " + playerUuid + 
-                            ": sitting=" + isSitting + ", sleeping=" + isSleeping + 
-                            ", walking=" + isWalking + ", running=" + isRunning + 
+                        plugin.getLogger().at(java.util.logging.Level.FINE).log("Component-based movement state update for " + playerUuid +
+                            ": sitting=" + isSitting + ", sleeping=" + isSleeping +
+                            ", walking=" + isWalking + ", running=" + isRunning +
                             ", jumping=" + isJumping);
                     }
                 }

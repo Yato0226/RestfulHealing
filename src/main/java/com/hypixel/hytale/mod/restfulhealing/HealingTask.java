@@ -36,7 +36,7 @@ public class HealingTask implements Runnable {
         try {
             // For Phase 3, we'll check both movement states and combat status
             if (config.isDebugMode()) {
-                logger.info("Healing task running for " + healingStates.size() + " players");
+                logger.at(java.util.logging.Level.INFO).log("Healing task running for " + healingStates.size() + " players");
             }
 
             // Iterate through tracked players and check their actual movement states and combat status
@@ -51,22 +51,22 @@ public class HealingTask implements Runnable {
                 if (isPlayerEligibleForHealing(playerUuid, state)) {
                     // Apply healing logic here (will be implemented in Phase 4)
                     if (config.isDebugMode()) {
-                        logger.debug("Player " + playerUuid + " is eligible for healing");
+                        logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " is eligible for healing");
                     }
                 } else {
                     if (config.isDebugMode()) {
-                        logger.debug("Player " + playerUuid + " is not eligible for healing (in combat or not resting)");
+                        logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " is not eligible for healing (in combat or not resting)");
                     }
                 }
 
                 // Debug logging for state tracking
                 if (config.isDebugMode()) {
-                    logger.debug("Player state: " + state.toString());
+                    logger.at(java.util.logging.Level.FINE).log("Player state: " + state.toString());
                 }
             }
 
         } catch (Exception e) {
-            logger.error("Error in healing task: " + e.getMessage(), e);
+            logger.at(java.util.logging.Level.SEVERE).log("Error in healing task: " + e.getMessage());
         }
     }
 
@@ -77,7 +77,7 @@ public class HealingTask implements Runnable {
         // Check if player is in combat
         if (state.isInCombat(config.getCombatTimeout())) {
             if (config.isDebugMode()) {
-                logger.debug("Player " + playerUuid + " is in combat, not eligible for healing");
+                logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " is in combat, not eligible for healing");
             }
             return false;
         }
@@ -87,14 +87,14 @@ public class HealingTask implements Runnable {
         // which gets updated through the state listener
         if (!state.isResting()) { // Assuming isResting() method exists or will be added to PlayerHealingState
             if (config.isDebugMode()) {
-                logger.debug("Player " + playerUuid + " is not resting, not eligible for healing");
+                logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " is not resting, not eligible for healing");
             }
             return false;
         }
 
         // Player is out of combat and resting, eligible for healing
         if (config.isDebugMode()) {
-            logger.debug("Player " + playerUuid + " is out of combat and resting, eligible for healing");
+            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " is out of combat and resting, eligible for healing");
         }
         return true;
     }
@@ -143,7 +143,7 @@ public class HealingTask implements Runnable {
 
                 // Log for debugging
                 if (config.isDebugMode()) {
-                    logger.debug("Real-time movement state update for " + playerUuid +
+                    logger.at(java.util.logging.Level.FINE).log("Real-time movement state update for " + playerUuid +
                         ": sitting=" + isSitting + ", sleeping=" + isSleeping +
                         ", walking=" + isWalking + ", running=" + isRunning +
                         ", jumping=" + isJumping);

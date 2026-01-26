@@ -1,7 +1,6 @@
 package com.hypixel.hytale.mod.restfulhealing;
 
 import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.event.EventListener;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.protocol.packets.player.ClientMovement;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -29,7 +28,7 @@ public class CombatListener {
         PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
         if (healingState != null) {
             healingState.updateCombatTime();
-            plugin.getLogger().debug("Player " + playerUuid + " entered combat due to interaction");
+            plugin.getLogger().at(java.util.logging.Level.FINE).log("Player " + playerUuid + " entered combat due to interaction");
         }
     }
 

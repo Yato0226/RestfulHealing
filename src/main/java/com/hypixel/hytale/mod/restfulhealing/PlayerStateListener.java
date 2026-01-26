@@ -27,7 +27,7 @@ public class PlayerStateListener {
         playerStates.put(playerUuid, initialState);
         lastUpdateTimes.put(playerUuid, System.currentTimeMillis());
 
-        logger.debug("PlayerStateListener: Player " + playerUuid + " joined with initial state: " + initialState);
+        logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: Player " + playerUuid + " joined with initial state: " + initialState);
     }
 
     public void onPlayerLeave(UUID playerUuid) {
@@ -35,7 +35,7 @@ public class PlayerStateListener {
         playerStates.remove(playerUuid);
         lastUpdateTimes.remove(playerUuid);
 
-        logger.debug("PlayerStateListener: Player " + playerUuid + " left");
+        logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: Player " + playerUuid + " left");
     }
     
     public void onMovementStateChange(UUID playerUuid, boolean isSitting, boolean isSleeping,
@@ -78,28 +78,28 @@ public class PlayerStateListener {
 
         HealingConfig config = plugin.getConfig();
 
-        logger.debug("PlayerStateListener: State change for " + playerUuid);
-        logger.debug("  Old: " + oldState);
-        logger.debug("  New: " + newState);
+        logger.at(java.util.logging.Level.FINE).log("PlayerStateListener: State change for " + playerUuid);
+        logger.at(java.util.logging.Level.FINE).log("  Old: " + oldState);
+        logger.at(java.util.logging.Level.FINE).log("  New: " + newState);
 
         // Handle starting to rest
         if (newState.isResting() && !oldState.isResting()) {
             healingState.startResting();
             healingState.updateMovementState(newState.isSitting(), newState.isSleeping());
-            logger.debug("Player " + playerUuid + " started resting");
+            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " started resting");
         }
 
         // Handle stopping rest due to movement
         else if (oldState.isResting() && newState.isMoving()) {
             healingState.stopResting();
             healingState.updateMovementState(false, false);
-            logger.debug("Player " + playerUuid + " stopped resting (movement detected)");
+            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " stopped resting (movement detected)");
         }
 
         // Handle state change while resting
         else if (oldState.isResting() && newState.isResting()) {
             healingState.updateMovementState(newState.isSitting(), newState.isSleeping());
-            logger.debug("Player " + playerUuid + " changed resting state: " +
+            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " changed resting state: " +
                 (newState.isSleeping() ? "Sleeping" : "Sitting"));
         }
 
@@ -107,7 +107,7 @@ public class PlayerStateListener {
         else if (oldState.isResting() && !newState.isResting()) {
             healingState.stopResting();
             healingState.updateMovementState(false, false);
-            logger.debug("Player " + playerUuid + " stopped resting (stood up)");
+            logger.at(java.util.logging.Level.FINE).log("Player " + playerUuid + " stopped resting (stood up)");
         }
 
         // Always update movement state
@@ -130,7 +130,7 @@ public class PlayerStateListener {
     public void simulatePlayerAction(UUID playerUuid, String action) {
         MovementStateChecker currentState = playerStates.get(playerUuid);
         if (currentState == null) {
-            logger.error("Cannot simulate action for untracked player: " + playerUuid);
+            logger.at(java.util.logging.Level.SEVERE).log("Cannot simulate action for untracked player: " + playerUuid);
             return;
         }
 
@@ -154,7 +154,7 @@ public class PlayerStateListener {
                 onMovementStateChange(playerUuid, false, false, false, false, true);
                 break;
             default:
-                logger.error("Unknown action: " + action);
+                logger.at(java.util.logging.Level.SEVERE).log("Unknown action: " + action);
         }
     }
 }

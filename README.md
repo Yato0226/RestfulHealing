@@ -1,6 +1,6 @@
 # Restful Healing Mod
 
-A Hytale server mod that adds intuitive healing mechanics while resting or sleeping.
+A Hytale server mod that adds intuitive healing mechanics while resting or sleeping, with accelerated regen curves and smart auto-heal thresholds.
 
 ## Features
 
@@ -23,9 +23,25 @@ A Hytale server mod that adds intuitive healing mechanics while resting or sleep
 
 ## Installation
 
-1. Compile the mod into a JAR file
-2. Place in your Hytale server's plugins/mods directory
-3. Restart server
+### Using Pre-built JAR
+1. Place `RestfulHealing.jar` in your Hytale server's `plugins` directory
+2. Restart the server
+3. The mod will automatically appear in the mod list
+
+### Building from Source with Gradle
+1. Clone the repository
+2. Navigate to the project directory
+3. Build the mod using Gradle:
+   ```bash
+   # On Windows
+   gradlew.bat build
+
+   # On macOS/Linux
+   ./gradlew build
+   ```
+4. The built JAR will be in the `build/libs/` directory
+5. Place the JAR file in your Hytale server's `plugins` directory
+6. Restart the server
 
 ## Configuration
 
@@ -34,6 +50,14 @@ Healing rates, thresholds, and timing can be configured through the mod's config
 ## Compatibility
 
 Designed for Hytale server API. Compatible with other mods that don't modify core healing mechanics.
+
+## Phases Completed
+
+- **Phase 1**: Basic Plugin Structure - Complete
+- **Phase 2**: State Detection - Complete
+- **Phase 3**: Combat Detection - Complete
+- **Phase 4**: Healing Logic - Complete
+- **Phase 5**: Performance Optimization - Complete
 
 ## License
 

@@ -1,0 +1,89 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.hypixel.hytale.mod'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+repositories {
+    mavenCentral()
+    // Add Hytale's repository here if available
+    flatDir {
+        dirs 'libs' // For local Hytale JAR files
+    }
+}
+
+dependencies {
+    // Hytale server API - you'll need to add the Hytale server JAR to libs/ folder
+    implementation name: 'HytaleServer'
+    
+    // Or if Hytale provides a Maven repository:
+    // implementation 'com.hypixel.hytale:server-api:1.0.0'
+    
+    // Common libraries that might be needed
+    implementation 'com.google.guava:guava:31.1-jre'
+    implementation 'it.unimi.dsi:fastutil:8.5.12'
+}
+
+application {
+    mainClass = 'com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin'
+}
+
+jar {
+    archiveBaseName = 'RestfulHealing'
+    manifest {
+        attributes(
+            'Main-Class': 'com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin',
+            'Plugin-ID': 'restfulhealing',
+            'Plugin-Name': 'Restful Healing Mod',
+            'Plugin-Version': project.version,
+            'Plugin-Description': 'Adds intuitive healing mechanics while resting or sleeping, with accelerated regen curves and smart auto-heal thresholds.',
+            'Plugin-Author': 'Louize',
+            'Plugin-Dependencies': '',
+            'Plugin-API-Version': '1.0.0'
+        )
+    }
+}
+
+// Custom task to create the mod JAR with proper structure
+task createModJar(type: Jar) {
+    archiveBaseName = 'RestfulHealing'
+    destinationDirectory = file('.')
+    
+    from sourceSets.main.output
+    
+    manifest {
+        attributes(
+            'Main-Class': 'com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin',
+            'Plugin-ID': 'restfulhealing',
+            'Plugin-Name': 'Restful Healing Mod',
+            'Plugin-Version': project.version,
+            'Plugin-Description': 'Adds intuitive healing mechanics while resting or sleeping, with accelerated regen curves and smart auto-heal thresholds.',
+            'Plugin-Author': 'Louize',
+            'Plugin-Dependencies': '',
+            'Plugin-API-Version': '1.0.0'
+        )
+    }
+}
+
+// Make sure the default jar task also includes the manifest
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin',
+            'Plugin-ID': 'restfulhealing',
+            'Plugin-Name': 'Restful Healing Mod',
+            'Plugin-Version': project.version,
+            'Plugin-Description': 'Adds intuitive healing mechanics while resting or sleeping, with accelerated regen curves and smart auto-heal thresholds.',
+            'Plugin-Author': 'Louize',
+            'Plugin-Dependencies': '',
+            'Plugin-API-Version': '1.0.0'
+        )
+    }
+}

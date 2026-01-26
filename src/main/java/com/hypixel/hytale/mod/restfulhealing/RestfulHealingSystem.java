@@ -164,7 +164,20 @@ public class RestfulHealingSystem extends EntityTickingSystem<EntityStore> {
             multiplier = 1.0f + (config.getAcceleratedRate() - 1.0f) * Math.min(1.0f, rampProgress);
         }
 
-        float healingRate = baseRate * multiplier;
+float healingRate = baseRate * multiplier;
+        
+        // Debug logging
+        if (config.isDebugMode()) {
+            plugin.getLogger().at(java.util.logging.Level.INFO).log(
+                "Healing Debug - Player: " + playerUuid + 
+                ", Resting: " + state.isResting() + 
+                ", Duration: " + (durationMs/1000.0f) + "s" +
+                ", Base Rate: " + baseRate + "%" +
+                ", Multiplier: " + multiplier + "x" +
+                ", Final Rate: " + healingRate + "%" +
+                ", In Combat: " + state.isInCombat(config.getCombatTimeout())
+            );
+        }
 
         // Apply healing scaled by dt (delta time in seconds)
         // healingRate is % per second

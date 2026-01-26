@@ -68,7 +68,13 @@ public class PlayerHealingState {
     
     public long getLastCombatTime() { return lastCombatTime; }
     
-    public void setLastCombatTime(long lastCombatTime) { this.lastCombatTime = lastCombatTime; }
+    public void setLastCombatTime(long lastCombatTime) { 
+        this.lastCombatTime = lastCombatTime;
+        // Reset healing state when combat time is updated (same as updateCombatTime)
+        this.isHealing = false;
+        this.restStartTime = 0;
+        this.healingProgress = 0.0f;
+    }
     
     public long getRestStartTime() { return restStartTime; }
     

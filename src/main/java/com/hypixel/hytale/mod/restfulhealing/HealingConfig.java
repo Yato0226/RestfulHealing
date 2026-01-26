@@ -50,7 +50,7 @@ public class HealingConfig {
         private float healThreshold = 0.8f;
         private float acceleratedRate = 2.0f;
         private boolean enabled = true;
-        private boolean debugMode = false;
+        private boolean debugMode = true;
         
         public Builder sittingHealRate(float rate) {
             this.sittingHealRate = Math.max(0, rate);

@@ -27,6 +27,11 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
+    - name: Create dummy Hytale JAR to satisfy build
+      run: |
+        mkdir -p libs
+        echo "dummy" > libs/HytaleServer.jar
+        
     - name: Build with Gradle
       run: ./gradlew build
       
@@ -36,34 +41,19 @@ jobs:
         echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
         
-    - name: Debug - List all JAR files in root
-      run: ls -la *.jar || echo "No JAR files in root directory"
-
+    - name: Display root directory contents
+      run: ls -la
+      
     - name: Create release assets directory
       run: |
         mkdir -p release_assets
-        # Copy the JAR file from root directory (created by copyJarToDestinations task)
-        cp RestfulHealing-*.jar release_assets/ 2>/dev/null || echo "No JAR files found in root directory"
-
-        # List what we found
-        echo "Files in release_assets:"
-        ls -la release_assets/ || echo "release_assets directory is empty"
-
-        # Rename the JAR to match the tag version if it exists
-        for jar_file in release_assets/RestfulHealing-*.jar; do
-          if [ -f "$jar_file" ]; then
-            mv "$jar_file" "release_assets/RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
-            echo "Renamed $jar_file to RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
-            break
-          fi
-        done
-
-        echo "Final files in release_assets:"
+        # Copy the JAR file that was created in the root directory by copyJarToDestinations task
+        cp RestfulHealing-*.jar release_assets/ || echo "No JAR file found in root"
         ls -la release_assets/
         
     - name: Create source code archive
       run: |
-        zip -r "RestfulHealing-${{ steps.tag.outputs.VERSION }}-sources.zip" . -x ".git/*" ".github/*" "build/*" "bin/*" "temp_classes/*" ".gradle/*" "*.jar" "RestfulHealing-*.zip"
+        zip -r "RestfulHealing-${{ steps.tag.outputs.VERSION }}-sources.zip" . -x ".git/*" ".github/*" "build/*" "bin/*" "temp_classes/*" ".gradle/*" "*.jar" "RestfulHealing-*.zip" "libs/*"
         mv "RestfulHealing-${{ steps.tag.outputs.VERSION }}-sources.zip" release_assets/
         
     - name: Create Release

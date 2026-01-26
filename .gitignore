@@ -1,2 +1,3 @@
-\.gradle
-\build\temp
+ \.gradle
+ \build\temp
+ \build\distributions

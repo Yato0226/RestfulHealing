@@ -1,0 +1,10 @@
+{
+  "id": "restfulhealing",
+  "name": "Restful Healing Mod",
+  "version": "1.0.0",
+  "description": "Adds intuitive healing mechanics while resting or sleeping",
+  "author": "Your Name",
+  "mainClass": "com.hypixel.hytale.mod.restfulhealing.RestfulHealingPlugin",
+  "dependencies": [],
+  "apiVersion": "1.0.0"
+}

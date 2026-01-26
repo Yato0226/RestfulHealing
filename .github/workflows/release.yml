@@ -36,16 +36,46 @@ jobs:
         echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
         
+    - name: Debug - List all files
+      run: find . -name "*.jar" -type f
+
+    - name: Debug - Show build directory
+      run: ls -la build/ || echo "build directory doesn't exist"
+
+    - name: Debug - Show build/libs directory
+      run: ls -la build/libs/ || echo "build/libs directory doesn't exist"
+
     - name: Create release assets directory
       run: |
         mkdir -p release_assets
-        find . -path "./build/libs/*.jar" -exec cp {} release_assets/ \;
-        # Rename the JAR to match the tag version
-        for jar_file in release_assets/*.jar; do
-          if [ -f "$jar_file" ]; then
-            mv "$jar_file" "release_assets/RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
-          fi
-        done
+        # Copy all JAR files from build/libs
+        if [ -d "build/libs" ]; then
+          cp build/libs/*.jar release_assets/ 2>/dev/null || echo "No JAR files in build/libs"
+        else
+          echo "build/libs directory does not exist"
+          find . -name "*.jar" -exec cp {} release_assets/ \; 2>/dev/null || echo "No JAR files found anywhere"
+        fi
+
+        # List what we found
+        echo "Files in release_assets:"
+        ls -la release_assets/ || echo "release_assets directory is empty"
+
+        # Rename the JAR to match the tag version if it exists
+        if [ -f "release_assets/RestfulHealing-1.0.0.jar" ]; then
+          mv "release_assets/RestfulHealing-1.0.0.jar" "release_assets/RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
+          echo "Renamed JAR file to match tag version"
+        else
+          # If there's a JAR file with a different name, rename it
+          for jar_file in release_assets/*.jar; do
+            if [ -f "$jar_file" ]; then
+              mv "$jar_file" "release_assets/RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
+              echo "Renamed $jar_file to RestfulHealing-${{ steps.tag.outputs.VERSION }}.jar"
+              break
+            fi
+          done
+        fi
+
+        echo "Final files in release_assets:"
         ls -la release_assets/
         
     - name: Create source code archive

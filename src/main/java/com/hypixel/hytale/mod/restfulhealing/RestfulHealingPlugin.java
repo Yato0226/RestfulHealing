@@ -1,13 +1,12 @@
 package com.hypixel.hytale.mod.restfulhealing;
 
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
-import com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent;
-import com.hypixel.hytale.server.core.task.TaskRegistry;
-import com.hypixel.hytale.server.core.task.TaskRegistration;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,10 +15,8 @@ public class RestfulHealingPlugin extends JavaPlugin {
 
     private HealingConfig config;
     private Map<UUID, PlayerHealingState> healingStates;
-    private HealingTask healingTask;
     private PlayerStateListener stateListener;
     private CombatListener combatListener;
-    private TaskRegistration healingTaskRegistration;
 
     public RestfulHealingPlugin(JavaPluginInit init) {
         super(init);
@@ -34,8 +31,10 @@ public class RestfulHealingPlugin extends JavaPlugin {
         loadConfiguration();
 
         this.stateListener = new PlayerStateListener(this, getLogger());
-
         this.combatListener = new CombatListener(this);
+
+        // Register the ticking system - THIS IS THE CORRECT WAY
+        getEntityStoreRegistry().registerSystem(new RestfulHealingSystem(this, config, healingStates));
 
         registerEvents();
 
@@ -45,20 +44,11 @@ public class RestfulHealingPlugin extends JavaPlugin {
     @Override
     protected void start() {
         getLogger().at(java.util.logging.Level.INFO).log("Starting Restful Healing Mod...");
-
-        startHealingTask();
-
-        getLogger().at(java.util.logging.Level.INFO).log("Restful Healing Mod started successfully!");
     }
 
     @Override
     protected void shutdown() {
         getLogger().at(java.util.logging.Level.INFO).log("Disabling Restful Healing Mod...");
-
-        if (healingTaskRegistration != null) {
-            healingTaskRegistration.unregister();
-            healingTaskRegistration = null;
-        }
 
         if (healingStates != null) {
             healingStates.clear();
@@ -79,28 +69,27 @@ public class RestfulHealingPlugin extends JavaPlugin {
         }
     }
     
-    private void startHealingTask() {
-        this.healingTask = new HealingTask(this, config, healingStates, getLogger());
-
-        // Schedule task to run on the WorldThread every 20 ticks (1 second)
-        this.healingTaskRegistration = getTaskRegistry().registerRepeatingTask(
-            healingTask::run,
-            20L
-        );
-
-        getLogger().at(java.util.logging.Level.INFO).log("Healing task started on main thread!");
-    }
-    
     private void registerEvents() {
         getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
         getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
-        getEventRegistry().registerGlobal(PlayerInteractEvent.class, this::onPlayerInteract);
 
         getLogger().at(java.util.logging.Level.INFO).log("Events registered successfully!");
     }
 
     private void onPlayerReady(PlayerReadyEvent event) {
-        UUID playerUuid = event.getPlayer().getUuid();
+        Ref<EntityStore> ref = event.getPlayerRef();
+        UUID playerUuid = null;
+        if (ref != null && ref.isValid()) {
+            UUIDComponent uuidComp = ref.getStore().getComponent(ref, UUIDComponent.getComponentType());
+            if (uuidComp != null) {
+                playerUuid = uuidComp.getUuid();
+            }
+        }
+        
+        if (playerUuid == null) {
+            return;
+        }
+
         healingStates.put(playerUuid, new PlayerHealingState());
         stateListener.onPlayerJoin(playerUuid);
         getLogger().at(java.util.logging.Level.FINE).log("Player joined: " + playerUuid);
@@ -111,15 +100,6 @@ public class RestfulHealingPlugin extends JavaPlugin {
         healingStates.remove(playerUuid);
         stateListener.onPlayerLeave(playerUuid);
         getLogger().at(java.util.logging.Level.FINE).log("Player left: " + playerUuid);
-    }
-
-    private void onPlayerInteract(PlayerInteractEvent event) {
-        UUID playerUuid = event.getPlayer().getUuid();
-        PlayerHealingState healingState = healingStates.get(playerUuid);
-        if (healingState != null) {
-            healingState.updateCombatTime();
-            getLogger().at(java.util.logging.Level.FINE).log("Player " + playerUuid + " entered combat");
-        }
     }
 
     public void onPlayerStateChange(java.util.UUID playerUuid, boolean isSitting, boolean isSleeping,

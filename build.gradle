@@ -11,6 +11,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:deprecation"
+}
+
 repositories {
     mavenCentral()
     // Add Hytale's repository here if available

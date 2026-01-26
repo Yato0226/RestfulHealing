@@ -19,7 +19,17 @@ public class MovementStateListener {
     }
     
     public void onClientMovement(Player player, ClientMovement clientMovement, Ref<EntityStore> playerRef) {
-        UUID playerUuid = player.getUuid();
+        UUID playerUuid = null;
+        if (playerRef != null && playerRef.isValid()) {
+            UUIDComponent uuidComp = playerRef.getStore().getComponent(playerRef, UUIDComponent.getComponentType());
+            if (uuidComp != null) {
+                playerUuid = uuidComp.getUuid();
+            }
+        }
+        
+        if (playerUuid == null) {
+            return;
+        }
 
         MovementStates movementStates = clientMovement.movementStates;
         if (movementStates == null) {
@@ -52,7 +62,17 @@ public class MovementStateListener {
                 Player player = playerRef.getStore().getComponent(playerRef, Player.getComponentType());
                 
                 if (player != null) {
-                    UUID playerUuid = player.getUuid();
+                    UUID playerUuid = null;
+                    if (playerRef.isValid()) {
+                        UUIDComponent uuidComp = playerRef.getStore().getComponent(playerRef, UUIDComponent.getComponentType());
+                        if (uuidComp != null) {
+                            playerUuid = uuidComp.getUuid();
+                        }
+                    }
+                    
+                    if (playerUuid == null) {
+                        return;
+                    }
 
                     boolean isSitting = movementStates.sitting;
                     boolean isSleeping = movementStates.sleeping;

@@ -1,0 +1,39 @@
+name: Auto Release JAR
+
+on:
+  push:
+    paths:
+      - "*.jar" # Triggers only when a .jar in the root changes
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Essential for creating releases
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Get JAR Info
+        id: jar_info
+        run: |
+          # Finds the first .jar file in root
+          JAR_FILE=$(ls *.jar | head -n 1)
+          # Extracts version (e.g., 1.0.0) from RestfulHealing-1.0.0.jar
+          VERSION=$(echo $JAR_FILE | grep -oP '\d+\.\d+\.\d+')
+          
+          echo "file_path=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected JAR: $JAR_FILE with Version: $VERSION"
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.jar_info.outputs.version }}
+          name: Release ${{ steps.jar_info.outputs.version }}
+          files: ${{ steps.jar_info.outputs.file_path }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

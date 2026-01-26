@@ -50,18 +50,26 @@ A Hytale server mod that adds intuitive healing mechanics while resting or sleep
 
 ## Automated Releases
 
-This project uses GitHub Actions to automatically create releases when a new tag is pushed. To create a new release:
+This project uses GitHub Actions to automatically create releases when a new JAR file is detected in the repository root. The workflow (`.github/workflows/release.yml`) will:
 
+### Automatic Release Process
+- **Trigger**: Detects when a `.jar` file is added/updated in the root directory
+- **Version Detection**: Extracts version from filename pattern (e.g., `RestfulHealing-1.0.0.jar` → `v1.0.0`)
+- **Release Creation**: Automatically creates a GitHub release with the detected version
+- **Asset Upload**: Attaches the JAR file to the release
+
+### Manual Release Process
+Alternatively, you can create releases manually using tags:
 1. Update the version in `gradle.properties`
 2. Commit your changes
 3. Create a new tag: `git tag v1.0.1` (replace with your version)
 4. Push the tag: `git push origin v1.0.1`
 
-GitHub Actions will automatically:
-- Build the project
-- Create a new release with the tag name
-- Upload the JAR file as an asset
-- Upload a source code archive as an asset
+### Workflow Features
+- **Security**: Uses `contents: write` permissions for release creation
+- **Automation**: No manual steps required after building and committing the JAR
+- **Version Management**: Automatic version parsing from JAR filename
+- **Clean Releases**: No draft or prerelease status by default
 
 ## Configuration
 

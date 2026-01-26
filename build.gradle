@@ -116,3 +116,34 @@ jar {
 test {
     enabled = false
 }
+
+// Task to copy the built JAR to specified directories
+task copyJarToDestinations {
+    dependsOn jar
+    doLast {
+        def jarFile = jar.archiveFile.get()
+        def baseName = jar.archiveBaseName.get()
+        def version = jar.archiveVersion.get()
+
+        // Copy to Hytale mods directory
+        copy {
+            from jarFile
+            into 'C:/Users/louize/AppData/Roaming/Hytale/UserData/Mods'
+            rename { filename ->
+                "${baseName}-${version}.jar"
+            }
+        }
+
+        // Copy to project root directory
+        copy {
+            from jarFile
+            into '.'
+            rename { filename ->
+                "${baseName}-${version}.jar"
+            }
+        }
+    }
+}
+
+// Make sure the copy task runs after build
+build.finalizedBy copyJarToDestinations

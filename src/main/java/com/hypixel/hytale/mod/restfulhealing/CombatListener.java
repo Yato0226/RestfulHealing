@@ -14,13 +14,13 @@ import java.util.UUID;
  * CombatListener handles combat-related events to track when players take damage
  */
 public class CombatListener {
-    
+
     private final RestfulHealingPlugin plugin;
-    
+
     public CombatListener(RestfulHealingPlugin plugin) {
         this.plugin = plugin;
     }
-    
+
     /**
      * Called when a player interacts (which could include taking damage)
      */
@@ -29,7 +29,29 @@ public class CombatListener {
         PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
         if (healingState != null) {
             healingState.updateCombatTime();
-            plugin.getLogger().debug("Player " + playerUuid + " entered combat");
+            plugin.getLogger().debug("Player " + playerUuid + " entered combat due to interaction");
         }
+    }
+
+    /**
+     * Check if a player is currently in combat based on the timeout
+     */
+    public boolean isInCombat(UUID playerUuid) {
+        PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
+        if (healingState != null) {
+            return healingState.isInCombat(plugin.getConfig().getCombatTimeout());
+        }
+        return false; // If player not tracked, assume not in combat
+    }
+
+    /**
+     * Get the time elapsed since the player was last in combat
+     */
+    public long getTimeSinceLastCombat(UUID playerUuid) {
+        PlayerHealingState healingState = plugin.getHealingStates().get(playerUuid);
+        if (healingState != null) {
+            return System.currentTimeMillis() - healingState.getLastCombatTime();
+        }
+        return Long.MAX_VALUE; // If player not tracked, return max value
     }
 }

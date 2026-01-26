@@ -34,18 +34,30 @@ public class HealingTask implements Runnable {
         }
 
         try {
-            // For Phase 2, we'll check the actual movement states from the game
+            // For Phase 3, we'll check both movement states and combat status
             if (config.isDebugMode()) {
                 logger.info("Healing task running for " + healingStates.size() + " players");
             }
 
-            // Iterate through tracked players and check their actual movement states
+            // Iterate through tracked players and check their actual movement states and combat status
             for (Map.Entry<UUID, PlayerHealingState> entry : healingStates.entrySet()) {
                 UUID playerUuid = entry.getKey();
                 PlayerHealingState state = entry.getValue();
 
                 // Get the player's actual movement state from the game
                 checkAndUpdatePlayerMovementState(playerUuid, state);
+
+                // Check if player is out of combat and eligible for healing
+                if (isPlayerEligibleForHealing(playerUuid, state)) {
+                    // Apply healing logic here (will be implemented in Phase 4)
+                    if (config.isDebugMode()) {
+                        logger.debug("Player " + playerUuid + " is eligible for healing");
+                    }
+                } else {
+                    if (config.isDebugMode()) {
+                        logger.debug("Player " + playerUuid + " is not eligible for healing (in combat or not resting)");
+                    }
+                }
 
                 // Debug logging for state tracking
                 if (config.isDebugMode()) {
@@ -56,6 +68,35 @@ public class HealingTask implements Runnable {
         } catch (Exception e) {
             logger.error("Error in healing task: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Determine if a player is eligible for healing based on combat status and resting state
+     */
+    private boolean isPlayerEligibleForHealing(UUID playerUuid, PlayerHealingState state) {
+        // Check if player is in combat
+        if (state.isInCombat(config.getCombatTimeout())) {
+            if (config.isDebugMode()) {
+                logger.debug("Player " + playerUuid + " is in combat, not eligible for healing");
+            }
+            return false;
+        }
+
+        // Check if player is resting (sitting or sleeping)
+        // Note: The actual resting state should be checked from the PlayerHealingState
+        // which gets updated through the state listener
+        if (!state.isResting()) { // Assuming isResting() method exists or will be added to PlayerHealingState
+            if (config.isDebugMode()) {
+                logger.debug("Player " + playerUuid + " is not resting, not eligible for healing");
+            }
+            return false;
+        }
+
+        // Player is out of combat and resting, eligible for healing
+        if (config.isDebugMode()) {
+            logger.debug("Player " + playerUuid + " is out of combat and resting, eligible for healing");
+        }
+        return true;
     }
 
     /**

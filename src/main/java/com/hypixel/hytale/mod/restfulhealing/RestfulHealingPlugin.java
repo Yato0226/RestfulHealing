@@ -17,6 +17,7 @@ public class RestfulHealingPlugin extends JavaPlugin {
     private Map<UUID, PlayerHealingState> healingStates;
     private HealingTask healingTask;
     private PlayerStateListener stateListener;
+    private CombatListener combatListener;
     private TaskRegistration healingTaskRegistration;
 
     public RestfulHealingPlugin(JavaPluginInit init) {
@@ -35,6 +36,9 @@ public class RestfulHealingPlugin extends JavaPlugin {
 
         // Initialize state listener with logger
         this.stateListener = new PlayerStateListener(this, getLogger());
+
+        // Initialize combat listener
+        this.combatListener = new CombatListener(this);
 
         // Register events
         registerEvents();

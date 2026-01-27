@@ -26,7 +26,6 @@ public class RestfulHealingPlugin extends JavaPlugin {
 
         this.healingStates = new ConcurrentHashMap<>();
 
-        // Load Configuration
         try {
             this.config = HealingConfig.createDefault();
         } catch (Exception e) {
@@ -34,13 +33,12 @@ public class RestfulHealingPlugin extends JavaPlugin {
             this.config = HealingConfig.createDefault();
         }
 
-        // Register the efficient Ticking System
-        // This system now handles all logic (state checking, combat checking, healing)
         getEntityStoreRegistry().registerSystem(new RestfulHealingSystem(this, config, healingStates));
 
-        // Register basic cleanup events
         getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
         getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
+
+        getCommandRegistry().registerCommand(new RestfulHealingCommand(this));
 
         getLogger().at(java.util.logging.Level.INFO).log("Restful Healing Mod enabled.");
     }
@@ -62,4 +60,8 @@ public class RestfulHealingPlugin extends JavaPlugin {
     }
 
     public HealingConfig getConfig() { return config; }
+
+    public void updateConfig(HealingConfig newConfig) {
+        this.config = newConfig;
+    }
 }

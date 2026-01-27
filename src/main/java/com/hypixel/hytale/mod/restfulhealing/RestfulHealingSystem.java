@@ -30,25 +30,26 @@ public class RestfulHealingSystem extends EntityTickingSystem<EntityStore> {
     private final RestfulHealingPlugin plugin;
     private final HealingConfig config;
     private final Map<UUID, PlayerHealingState> healingStates;
-    private final ComponentType<EntityStore, Player> playerComponentType;
-    private final ComponentType<EntityStore, UUIDComponent> uuidComponentType;
-    private final ComponentType<EntityStore, EntityStatMap> statMapComponentType;
-    private final ComponentType<EntityStore, MovementStatesComponent> movementStatesComponentType;
-    private final ComponentType<EntityStore, DamageDataComponent> damageDataComponentType;
+
+    // Component Types
+    private final ComponentType<EntityStore, UUIDComponent> uuidType;
+    private final ComponentType<EntityStore, EntityStatMap> statMapType;
+    private final ComponentType<EntityStore, MovementStatesComponent> moveType;
+    private final ComponentType<EntityStore, DamageDataComponent> damageType;
     private final Query<EntityStore> query;
 
     public RestfulHealingSystem(RestfulHealingPlugin plugin, HealingConfig config, Map<UUID, PlayerHealingState> healingStates) {
         this.plugin = plugin;
         this.config = config;
         this.healingStates = healingStates;
-        this.playerComponentType = Player.getComponentType();
-        this.uuidComponentType = UUIDComponent.getComponentType();
-        this.statMapComponentType = EntityStatMap.getComponentType();
-        this.movementStatesComponentType = MovementStatesComponent.getComponentType();
-        this.damageDataComponentType = DamageDataComponent.getComponentType();
-        
-        // We want to process entities that have Player, UUID, EntityStatMap, and DamageData components
-        this.query = Query.and(playerComponentType, uuidComponentType, statMapComponentType, damageDataComponentType);
+
+        this.uuidType = UUIDComponent.getComponentType();
+        this.statMapType = EntityStatMap.getComponentType();
+        this.moveType = MovementStatesComponent.getComponentType();
+        this.damageType = DamageDataComponent.getComponentType();
+
+        // Only tick entities that have ALL these components (Players)
+        this.query = Query.and(Player.getComponentType(), uuidType, statMapType, moveType, damageType);
     }
 
     @Override
@@ -58,144 +59,112 @@ public class RestfulHealingSystem extends EntityTickingSystem<EntityStore> {
     }
 
     @Override
-    public boolean isParallel(int archetypeChunkSize, int taskCount) {
-        return false; 
-    }
-
-    @Override
     public void tick(float dt, int index, @Nonnull ArchetypeChunk<EntityStore> archetypeChunk, @Nonnull Store<EntityStore> store, @Nonnull CommandBuffer<EntityStore> commandBuffer) {
-        if (!config.isEnabled()) {
-            return;
-        }
+        if (!config.isEnabled()) return;
 
-        UUIDComponent uuidComp = archetypeChunk.getComponent(index, uuidComponentType);
-        EntityStatMap statMap = archetypeChunk.getComponent(index, statMapComponentType);
-        
-        if (uuidComp == null || statMap == null) {
-            return;
-        }
+        // 1. Get Core Components
+        UUIDComponent uuidComp = archetypeChunk.getComponent(index, uuidType);
+        EntityStatMap statMap = archetypeChunk.getComponent(index, statMapType);
+
+        if (uuidComp == null || statMap == null) return;
 
         UUID playerUuid = uuidComp.getUuid();
         PlayerHealingState state = healingStates.get(playerUuid);
-        
-        if (state == null) {
+        if (state == null) return;
+
+        // 2. Check Movement State directly from component
+        MovementStatesComponent moveComp = archetypeChunk.getComponent(index, moveType);
+        MovementStates moves = moveComp.getMovementStates();
+
+        // If movement states are null or player is invalid, stop here
+        if (moves == null) {
+            state.stopResting();
             return;
         }
 
-        // Update movement state from component if available
-        MovementStatesComponent movementComponent = archetypeChunk.getComponent(index, movementStatesComponentType);
-        if (movementComponent != null) {
-            MovementStates movementStates = movementComponent.getMovementStates();
-            if (movementStates != null) {
-                state.updateMovementState(movementStates.sitting, movementStates.sleeping);
-                
-                // Notify plugin of state change for logging/other logic
-                plugin.getStateListener().onMovementStateChange(
-                    playerUuid, 
-                    movementStates.sitting, 
-                    movementStates.sleeping, 
-                    movementStates.walking, 
-                    movementStates.running, 
-                    movementStates.jumping
-                );
-            }
-        }
+        boolean isSitting = moves.sitting;
+        boolean isSleeping = moves.sleeping;
+        boolean isResting = isSitting || isSleeping;
 
-        // Sync combat status from Hytale's DamageDataComponent
-        DamageDataComponent damageData = archetypeChunk.getComponent(index, damageDataComponentType);
-        if (damageData != null) {
-            Instant lastCombat = damageData.getLastCombatAction();
-            Instant lastDamage = damageData.getLastDamageTime();
-            
-            // Use the most recent of the two
-            Instant mostRecentCombat = lastCombat.isAfter(lastDamage) ? lastCombat : lastDamage;
-            
-            if (!mostRecentCombat.equals(Instant.MIN)) {
-                long lastCombatMillis = mostRecentCombat.toEpochMilli();
-                if (lastCombatMillis > state.getLastCombatTime()) {
-                    state.setLastCombatTime(lastCombatMillis);
-                    // Reset ramp-up on new combat action or damage
-                    state.stopResting();
+        // 3. Check Combat State directly from component
+        DamageDataComponent damageComp = archetypeChunk.getComponent(index, damageType);
+        boolean inCombat = false;
+
+        if (damageComp != null) {
+            // Check both last action (attacking) and last damage (getting hit)
+            Instant lastAction = damageComp.getLastCombatAction();
+            Instant lastDamage = damageComp.getLastDamageTime();
+            Instant mostRecent = lastAction.isAfter(lastDamage) ? lastAction : lastDamage;
+
+            if (!mostRecent.equals(Instant.MIN)) {
+                long timeSinceCombat = System.currentTimeMillis() - mostRecent.toEpochMilli();
+                if (timeSinceCombat < config.getCombatTimeout()) {
+                    inCombat = true;
                 }
             }
         }
 
-        // Check eligibility
-        if (state.isInCombat(config.getCombatTimeout()) || !state.isResting()) {
-            if (state.isHealing()) {
-                state.stopResting();
-            }
+        // 4. Determine if we should heal
+        if (!isResting || inCombat) {
+            state.stopResting();
             return;
         }
 
-        // Restart healing if eligible but not currently tracking rest (e.g. after combat timeout)
-        if (!state.isHealing()) {
-            state.startResting();
-        }
+        // Start tracking time if not already
+        state.startResting();
 
-        // Check health threshold
-        int healthStatIndex = DefaultEntityStatTypes.getHealth();
-        EntityStatValue healthStat = statMap.get(healthStatIndex);
-        if (healthStat == null) {
-            return;
-        }
+        // 5. Check Health Threshold
+        int healthIndex = DefaultEntityStatTypes.getHealth();
+        EntityStatValue healthStat = statMap.get(healthIndex);
+        if (healthStat == null) return;
 
         float currentHealth = healthStat.get();
         float maxHealth = healthStat.getMax();
         float threshold = maxHealth * config.getHealThreshold();
 
         if (currentHealth >= threshold) {
-            return;
+            return; // Don't heal past threshold, but don't reset rest timer either
         }
 
-        // Calculate healing rate
-        float baseRate = state.wasSleeping() ? config.getSleepingHealRate() : config.getSittingHealRate();
-        
-        // Accelerated Regen Curve:
-        // First few seconds (0 to accelerationTime): baseRate
-        // Ramps up between accelerationTime and (accelerationTime + 5s):
+        // 6. Calculate Healing Amount
+        float baseRate = isSleeping ? config.getSleepingHealRate() : config.getSittingHealRate();
+
+        // Acceleration Curve
         long durationMs = state.getRestDuration();
         float multiplier = 1.0f;
-        long accelStartMs = config.getAccelerationTime();
-        long rampDurationMs = 5000; // Ramp over 5 seconds (e.g., from 10s to 15s)
-        
-        if (durationMs > accelStartMs) {
-            float rampProgress = (float)(durationMs - accelStartMs) / (float)rampDurationMs;
+        if (durationMs > config.getAccelerationTime()) {
+            float rampProgress = (float)(durationMs - config.getAccelerationTime()) / 5000f; // Ramp over 5s
             multiplier = 1.0f + (config.getAcceleratedRate() - 1.0f) * Math.min(1.0f, rampProgress);
         }
 
-float healingRate = baseRate * multiplier;
-        
-        // Debug logging
-        if (config.isDebugMode()) {
-            plugin.getLogger().at(java.util.logging.Level.INFO).log(
-                "Healing Debug - Player: " + playerUuid + 
-                ", Resting: " + state.isResting() + 
-                ", Duration: " + (durationMs/1000.0f) + "s" +
-                ", Base Rate: " + baseRate + "%" +
-                ", Multiplier: " + multiplier + "x" +
-                ", Final Rate: " + healingRate + "%" +
-                ", In Combat: " + state.isInCombat(config.getCombatTimeout())
-            );
+        float healPerSecond = baseRate * multiplier; // % per second
+        float healPercentTick = healPerSecond * dt;
+        float healAmountTick = maxHealth * (healPercentTick / 100.0f);
+
+        // Debug logging (only occasional to prevent spam)
+        if (config.isDebugMode() && Math.random() < 0.05) { // Log ~once per second
+            plugin.getLogger().at(java.util.logging.Level.FINE).log(String.format("Heal Tick: Rate=%.1f%%, Mult=%.1fx, Amt=%.2f", baseRate, multiplier, healAmountTick));
         }
 
-        // Apply healing scaled by dt (delta time in seconds)
-        // healingRate is % per second
-        float healPercent = healingRate * dt;
-        float healAmount = maxHealth * (healPercent / 100.0f);
+        // 7. Accumulate and Apply
+        state.addAccumulator(healAmountTick);
 
-        // Don't heal past threshold
-        if (currentHealth + healAmount > threshold) {
-            healAmount = threshold - currentHealth;
-        }
+        // Only apply if we have >= 1 HP stored up (Saves Network/TPS)
+        if (state.getAccumulator() >= 1.0f) {
+            float amountToApply = state.getAccumulator();
 
-        if (healAmount > 0) {
-            Int2FloatMap statChanges = new Int2FloatOpenHashMap();
-            statChanges.put(healthStatIndex, healAmount);
-            
-            // Apply stat changes.
-            // EntityStatMap.processStatChanges(Predictable predictable, Int2FloatMap entityStats, ValueType valueType, ChangeStatBehaviour changeStatBehaviour)
-            statMap.processStatChanges(EntityStatMap.Predictable.SELF, statChanges, ValueType.Absolute, ChangeStatBehaviour.Add);
+            // Cap at threshold
+            if (currentHealth + amountToApply > threshold) {
+                amountToApply = threshold - currentHealth;
+            }
+
+            if (amountToApply > 0) {
+                Int2FloatMap statChanges = new Int2FloatOpenHashMap();
+                statChanges.put(healthIndex, amountToApply);
+                statMap.processStatChanges(EntityStatMap.Predictable.SELF, statChanges, ValueType.Absolute, ChangeStatBehaviour.Add);
+            }
+
+            state.setAccumulator(0.0f);
         }
     }
 }

@@ -1,10 +1,22 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id 'java'
     id 'application'
 }
 
+// Read version from manifest.json
+def readVersionFromManifest() {
+    def manifestFile = file('src/main/resources/manifest.json')
+    if (manifestFile.exists()) {
+        def json = new groovy.json.JsonSlurper().parseText(manifestFile.text)
+        return json.Version
+    }
+    return '1.0.0' // fallback version
+}
+
 group = project.group
-version = project.version
+version = readVersionFromManifest()
 
 java {
     sourceCompatibility = JavaVersion.VERSION_25

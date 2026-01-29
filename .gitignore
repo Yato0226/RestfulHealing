@@ -5,3 +5,5 @@
 *.tar
 *.zip
 *.class
+RELEASE_GUIDE.md
+note.md
